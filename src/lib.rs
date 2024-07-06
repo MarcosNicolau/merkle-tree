@@ -1,14 +1,22 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+pub struct Node<T> {
+    value: T,
+    parent: Option<Box<Node<T>>>,
+    children: Option<Box<Vec<Node<T>>>>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub struct MerkleTree<T> {
+    tree: Node<T>,
+}
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+impl<T> MerkleTree<T> {
+    //todo
+    fn create_tree(data: Vec<T>) -> Node<T> {}
+}
+
+impl<T> From<Vec<T>> for MerkleTree<T> {
+    fn from(value: Vec<T>) -> Self {
+        Self {
+            tree: MerkleTree::create_tree(value),
+        }
     }
 }
