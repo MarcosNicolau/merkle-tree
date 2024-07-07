@@ -77,6 +77,34 @@ impl MerkleTree {
         return nodes.get(0).unwrap().to_owned();
     }
 
+    fn get_leaves(&self) -> Vec<MKNode> {
+        todo!()
+    }
+
+    fn add_leaf<T: Data>(&mut self, data: T) {
+        todo!()
+    }
+
+    fn remove_leaf<T: Data>(&mut self, data: T) {
+        todo!()
+    }
+
+    fn update_left(&mut self) {
+        todo!()
+    }
+
+    fn delete_leaf(&mut self) {
+        todo!()
+    }
+
+    fn gen_proof<T: Data>(&self, data: Vec<T>) -> Hash {
+        todo!()
+    }
+
+    fn verify_proof(&self, proof: Hash) -> bool {
+        todo!()
+    }
+
     fn get_combined_hash(a: Hash, b: Hash) -> Hash {
         let mut hasher = Blake2b512::new_with_prefix(a);
         hasher.update(b);
