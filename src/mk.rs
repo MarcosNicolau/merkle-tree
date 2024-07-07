@@ -1,13 +1,9 @@
+use crate::tree::*;
+use blake2::{Blake2b512, Digest};
 use std::rc::Rc;
 
-use crate::tree::*;
-
-use blake2::{Blake2b512, Digest};
-
 type Hash = [u8; 64];
-
 type MKNode = TreeNode<Hash>;
-
 pub struct MerkleTree {
     tree: MKNode,
     leaves: Vec<MKNode>,
@@ -15,7 +11,7 @@ pub struct MerkleTree {
 }
 
 // creates an alias for the trait AsRef<[u8]>, so that we don't have to write every time
-trait Data: AsRef<[u8]> {}
+pub trait Data: AsRef<[u8]> {}
 impl<T: AsRef<[u8]>> Data for T {}
 
 impl MerkleTree {
@@ -77,23 +73,35 @@ impl MerkleTree {
     }
 
     fn get_leaves(&self) -> Vec<MKNode> {
-        todo!()
+        self.leaves.to_owned()
     }
 
-    fn add_leaf<T: Data>(&mut self, data: T) {
-        todo!()
+    pub fn add_leaf<T: Data>(&mut self, data: T) {
+        let hash = MerkleTree::get_hash_from_data(data);
+        let node = Node::new(hash, None, None, None);
+        self.leaves.push(node);
+        self.rebuild_tree();
     }
 
-    fn remove_leaf<T: Data>(&mut self, data: T) {
-        todo!()
+    pub fn delete_leaf<T: Data>(&mut self, index: usize) {
+        if let Some(_) = self.leaves.get(index) {
+            self.leaves.remove(index);
+            self.rebuild_tree();
+        }
     }
 
-    fn update_left(&mut self) {
-        todo!()
+    pub fn update_left<T: Data>(&mut self, index: usize, data: T) {
+        if let Some(node) = self.leaves.get(index) {
+            node.borrow_mut().value = MerkleTree::get_hash_from_data(data);
+            self.rebuild_tree();
+        }
     }
 
-    fn delete_leaf(&mut self) {
-        todo!()
+    fn rebuild_tree(&mut self) {
+        let tree = MerkleTree::create_tree(self.leaves.clone());
+        let root_hash = tree.borrow().value;
+        self.tree = tree;
+        self.root_hash = root_hash;
     }
 
     fn gen_proof<T: Data>(&self, data: Vec<T>) -> Hash {
