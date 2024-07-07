@@ -17,7 +17,6 @@ pub struct MerkleTree {
 // creates an alias for the trait AsRef<[u8]>, so that we don't have to write every time
 trait Data: AsRef<[u8]> {}
 impl<T: AsRef<[u8]>> Data for T {}
-type Nodes = Vec<MKNode>;
 
 impl MerkleTree {
     fn create<T: Data>(data: Vec<T>) -> Option<Self> {
@@ -36,15 +35,15 @@ impl MerkleTree {
         })
     }
 
-    fn get_leaves_from<T: Data>(data: Vec<T>) -> Nodes {
+    fn get_leaves_from<T: Data>(data: Vec<T>) -> Vec<MKNode> {
         data.iter()
             .map(|el| Node::new(MerkleTree::get_hash_from_data(el), None, None, None))
             .collect()
     }
 
-    fn create_tree(mut nodes: Nodes) -> MKNode {
-        while nodes.len() != 1 {
-            nodes = nodes
+    fn create_tree(mut leaves: Vec<MKNode>) -> MKNode {
+        while leaves.len() != 1 {
+            leaves = leaves
                 .chunks(2)
                 .map(|el| match el {
                     [a, b] => {
@@ -74,7 +73,7 @@ impl MerkleTree {
                 .collect();
         }
 
-        return nodes.get(0).unwrap().to_owned();
+        return leaves.get(0).unwrap().to_owned();
     }
 
     fn get_leaves(&self) -> Vec<MKNode> {
