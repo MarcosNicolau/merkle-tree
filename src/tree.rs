@@ -8,10 +8,10 @@ pub type NodeChildren<T> = Vec<Rc<RefCell<Node<T>>>>;
 pub type NodeSiblings<T> = Vec<Weak<RefCell<Node<T>>>>;
 
 pub struct Node<T> {
-    value: T,
-    parent: Option<NodeParent<T>>,
-    children: Option<NodeChildren<T>>,
-    siblings: Option<NodeSiblings<T>>,
+    pub value: T,
+    pub parent: Option<NodeParent<T>>,
+    pub children: Option<NodeChildren<T>>,
+    pub siblings: Option<NodeSiblings<T>>,
 }
 
 pub type TreeNode<T> = Rc<RefCell<Node<T>>>;
