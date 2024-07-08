@@ -23,10 +23,13 @@ pub struct CompactMerkleTree {
 }
 
 impl CompactMerkleTree {
-    fn create<T: DataToHash>(data: &[T]) -> Self {
+    fn create<T: DataToHash>(data: &[T]) -> Option<Self> {
+        if data.is_empty() {
+            return None;
+        }
         let leaves: Vec<Node<[u8; 64]>> = Self::get_leaves_from(data);
         let root_hash = Self::calculate_root(leaves.clone());
-        Self { leaves, root_hash }
+        Some(Self { leaves, root_hash })
     }
 
     fn calculate_root(mut leaves: Vec<MKNode>) -> Hash {
@@ -70,14 +73,14 @@ impl CompactMerkleTree {
         self.rebuild_root();
     }
 
-    pub fn delete_leaf<T: DataToHash>(&mut self, index: usize) {
+    pub fn delete_leaf(&mut self, index: usize) {
         if let Some(_) = self.leaves.get(index) {
             self.leaves.remove(index);
             self.rebuild_root();
         }
     }
 
-    pub fn update_left<T: DataToHash>(&mut self, index: usize, data: T) {
+    pub fn update_leaf<T: DataToHash>(&mut self, index: usize, data: T) {
         if let Some(node) = self.leaves.get_mut(index) {
             node.value = get_hash_from_data(data);
             self.rebuild_root();
@@ -104,10 +107,11 @@ impl CompactMerkleTree {
             } else {
                 leaf_idx - 1
             };
-            let sibling = nodes.get(sibling_idx);
+            let mut sibling = nodes.get(sibling_idx);
 
+            // it needs to hash with itself
             if sibling.is_none() {
-                return Err("Sibling index is out of bounds");
+                sibling = nodes.get(leaf_idx);
             }
 
             proof.push(sibling.unwrap().value);
@@ -133,6 +137,6 @@ impl CompactMerkleTree {
 
 impl<T: DataToHash> From<&[T]> for CompactMerkleTree {
     fn from(value: &[T]) -> CompactMerkleTree {
-        CompactMerkleTree::create(value)
+        CompactMerkleTree::create(value).expect("Data can't be empty")
     }
 }
