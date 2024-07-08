@@ -1,6 +1,6 @@
 use blake2::{Blake2b512, Digest};
 
-type Hash = [u8; 64];
+pub type Hash = [u8; 64];
 
 pub trait DataToHash: AsRef<[u8]> {}
 impl<T: AsRef<[u8]>> DataToHash for T {}
