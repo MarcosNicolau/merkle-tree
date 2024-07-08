@@ -50,4 +50,14 @@ impl<T> Node<T> {
             sibling_mut.siblings = Some(new_siblings);
         }
     }
+
+    pub fn get_sibling(&self, idx: usize) -> Option<TreeNode<T>> {
+        self.siblings
+            .as_ref()
+            .and_then(|siblings| siblings.get(idx).and_then(|weak| weak.upgrade()))
+    }
+
+    pub fn get_parent(&self) -> Option<TreeNode<T>> {
+        self.parent.as_ref().and_then(|el| el.upgrade())
+    }
 }

@@ -1,4 +1,5 @@
 use crate::tree::*;
+use crate::utils;
 use blake2::{Blake2b512, Digest};
 use std::rc::Rc;
 
@@ -72,7 +73,7 @@ impl MerkleTree {
         return leaves.get(0).unwrap().to_owned();
     }
 
-    fn get_leaves(&self) -> Vec<MKNode> {
+    pub fn get_leaves(&self) -> Vec<MKNode> {
         self.leaves.to_owned()
     }
 
@@ -104,12 +105,26 @@ impl MerkleTree {
         self.root_hash = root_hash;
     }
 
-    fn gen_proof<T: Data>(&self, data: Vec<T>) -> Hash {
-        todo!()
-    }
+    pub fn gen_proof<T: Data>(&self, leaf_idx: usize) -> Result<Vec<Hash>, &str> {
+        let mut proof: Vec<Hash> = Vec::new();
+        let mut current_node = match self.leaves.get(leaf_idx) {
+            Some(node) => node.clone(),
+            None => return Err("No leaf exists with the given index"),
+        };
 
-    fn verify_proof(&self, proof: Hash) -> bool {
-        todo!()
+        loop {
+            let sibling = current_node.borrow().get_sibling(0);
+            // this means we've reached the root node
+            if sibling.is_none() {
+                break;
+            }
+            proof.push(sibling.unwrap().borrow().value);
+            // if it has a sibling, then it must have a parent
+            let parent_node = current_node.borrow().get_parent().unwrap();
+            current_node = parent_node;
+        }
+
+        return Ok(proof);
     }
 
     fn get_combined_hash(a: Hash, b: Hash) -> Hash {
