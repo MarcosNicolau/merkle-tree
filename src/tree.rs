@@ -31,6 +31,16 @@ impl<T> Node<T> {
         }))
     }
 
+    pub fn clone<A: Copy>(a: &TreeNode<A>) -> TreeNode<A> {
+        let a = a.borrow();
+        Node::new(
+            a.value,
+            a.children.clone(),
+            a.siblings.clone(),
+            a.parent.clone(),
+        )
+    }
+
     pub fn set_parent(parent: &TreeNode<T>, node: &TreeNode<T>) {
         node.borrow_mut().parent = Some(Rc::downgrade(parent));
     }

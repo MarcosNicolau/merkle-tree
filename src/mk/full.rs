@@ -3,7 +3,6 @@ use crate::utils::crypto::*;
 use crate::utils::num;
 use std::rc::Rc;
 
-type Hash = [u8; 64];
 type MKNode = TreeNode<Hash>;
 pub struct FullMerkleTree {
     tree: MKNode,
@@ -41,7 +40,7 @@ impl FullMerkleTree {
                 .map(|el| match el {
                     [a, b] => Self::create_node(a, b),
                     // hash with itself
-                    [a] => Self::create_node(a, a),
+                    [a] => Self::create_node(a, &Node::<Hash>::clone(a)),
                     _ => panic!("unexpected chunk size"),
                 })
                 .collect();
@@ -73,14 +72,14 @@ impl FullMerkleTree {
         self.rebuild_tree();
     }
 
-    pub fn delete_leaf<T: DataToHash>(&mut self, index: usize) {
+    pub fn delete_leaf(&mut self, index: usize) {
         if let Some(_) = self.leaves.get(index) {
             self.leaves.remove(index);
             self.rebuild_tree();
         }
     }
 
-    pub fn update_left<T: DataToHash>(&mut self, index: usize, data: T) {
+    pub fn update_leaf<T: DataToHash>(&mut self, index: usize, data: T) {
         if let Some(node) = self.leaves.get(index) {
             node.borrow_mut().value = get_hash_from_data(data);
             self.rebuild_tree();
@@ -94,7 +93,7 @@ impl FullMerkleTree {
         self.root_hash = root_hash;
     }
 
-    pub fn gen_proof<T: DataToHash>(&self, leaf_idx: usize) -> Result<Vec<Hash>, &str> {
+    pub fn gen_proof(&self, leaf_idx: usize) -> Result<Vec<Hash>, &str> {
         let mut proof: Vec<Hash> = Vec::new();
         let mut current_node = match self.leaves.get(leaf_idx) {
             Some(node) => node.clone(),
