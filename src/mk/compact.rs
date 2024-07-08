@@ -1,7 +1,7 @@
 use crate::utils::{crypto::*, num::is_even};
 
 pub struct Node<T> {
-    value: T,
+    pub value: T,
 }
 
 impl<T> Clone for Node<T>
@@ -18,8 +18,8 @@ where
 type MKNode = Node<Hash>;
 
 pub struct CompactMerkleTree {
-    leaves: Vec<MKNode>,
-    root_hash: Hash,
+    pub leaves: Vec<MKNode>,
+    pub root_hash: Hash,
 }
 
 impl CompactMerkleTree {

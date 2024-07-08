@@ -1,3 +1,3 @@
 pub mod mk;
 pub mod tree;
-mod utils;
+pub mod utils;

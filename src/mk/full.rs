@@ -5,13 +5,13 @@ use std::rc::Rc;
 
 type MKNode = TreeNode<Hash>;
 pub struct FullMerkleTree {
-    tree: MKNode,
-    leaves: Vec<MKNode>,
-    root_hash: Hash,
+    pub tree: MKNode,
+    pub leaves: Vec<MKNode>,
+    pub root_hash: Hash,
 }
 
 impl FullMerkleTree {
-    fn create<T: DataToHash>(data: Vec<T>) -> Option<Self> {
+    pub fn create<T: DataToHash>(data: Vec<T>) -> Option<Self> {
         if data.is_empty() {
             return None;
         }
