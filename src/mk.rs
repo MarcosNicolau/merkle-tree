@@ -127,6 +127,18 @@ impl MerkleTree {
         return Ok(proof);
     }
 
+    pub fn verify_proof(&self, mut leaf_hash: Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
+        for hash in proof {
+            if utils::is_even(leaf_idx) {
+                leaf_hash = MerkleTree::get_combined_hash(leaf_hash, hash);
+            } else {
+                leaf_hash = MerkleTree::get_combined_hash(hash, leaf_hash);
+            }
+            leaf_idx /= 2;
+        }
+        leaf_hash == self.root_hash
+    }
+
     fn get_combined_hash(a: Hash, b: Hash) -> Hash {
         let mut hasher = Blake2b512::new_with_prefix(a);
         hasher.update(b);
