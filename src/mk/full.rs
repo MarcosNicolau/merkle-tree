@@ -5,20 +5,20 @@ use std::rc::Rc;
 
 type Hash = [u8; 64];
 type MKNode = TreeNode<Hash>;
-pub struct MerkleTree {
+pub struct FullMerkleTree {
     tree: MKNode,
     leaves: Vec<MKNode>,
     root_hash: Hash,
 }
 
-impl MerkleTree {
+impl FullMerkleTree {
     fn create<T: DataToHash>(data: Vec<T>) -> Option<Self> {
         if data.is_empty() {
             return None;
         }
-        let leaves = MerkleTree::get_leaves_from(data);
+        let leaves = FullMerkleTree::get_leaves_from(data);
 
-        let tree = MerkleTree::create_tree(leaves.clone());
+        let tree = FullMerkleTree::create_tree(leaves.clone());
         let root_hash = tree.borrow().value;
 
         Some(Self {
@@ -95,7 +95,7 @@ impl MerkleTree {
     }
 
     fn rebuild_tree(&mut self) {
-        let tree = MerkleTree::create_tree(self.leaves.clone());
+        let tree = FullMerkleTree::create_tree(self.leaves.clone());
         let root_hash = tree.borrow().value;
         self.tree = tree;
         self.root_hash = root_hash;
@@ -136,8 +136,8 @@ impl MerkleTree {
     }
 }
 
-impl<T: AsRef<[u8]>> From<Vec<T>> for MerkleTree {
+impl<T: AsRef<[u8]>> From<Vec<T>> for FullMerkleTree {
     fn from(value: Vec<T>) -> Self {
-        MerkleTree::create(value).expect("data can't be empty")
+        FullMerkleTree::create(value).expect("data can't be empty")
     }
 }
