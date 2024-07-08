@@ -11,7 +11,7 @@ pub struct FullMerkleTree {
 }
 
 impl FullMerkleTree {
-    pub fn create<T: DataToHash>(data: Vec<T>) -> Option<Self> {
+    pub fn create<T: DataToHash>(data: &[T]) -> Option<Self> {
         if data.is_empty() {
             return None;
         }
@@ -27,7 +27,7 @@ impl FullMerkleTree {
         })
     }
 
-    fn get_leaves_from<T: DataToHash>(data: Vec<T>) -> Vec<MKNode> {
+    fn get_leaves_from<T: DataToHash>(data: &[T]) -> Vec<MKNode> {
         data.iter()
             .map(|el| Node::new(get_hash_from_data(el), None, None, None))
             .collect()
@@ -141,8 +141,8 @@ impl FullMerkleTree {
     }
 }
 
-impl<T: AsRef<[u8]>> From<Vec<T>> for FullMerkleTree {
-    fn from(value: Vec<T>) -> Self {
+impl<T: AsRef<[u8]>> From<&[T]> for FullMerkleTree {
+    fn from(value: &[T]) -> Self {
         FullMerkleTree::create(value).expect("data can't be empty")
     }
 }

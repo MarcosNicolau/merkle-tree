@@ -9,7 +9,7 @@ mod tests {
     #[test]
     fn test_from_even_merkle_tree() {
         let data = vec!["hello", "how", "are", "you"];
-        let tree = FullMerkleTree::from(data.clone());
+        let tree = FullMerkleTree::from(data.as_slice());
 
         assert_eq!(tree.leaves.len(), 4);
         assert_eq!(tree.root_hash.len(), 64);
@@ -24,7 +24,7 @@ mod tests {
     #[test]
     fn test_from_odd_merkle_tree() {
         let data = vec!["how", "are", "you"];
-        let tree = FullMerkleTree::from(data.clone());
+        let tree = FullMerkleTree::from(data.as_slice());
 
         assert_eq!(tree.leaves.len(), 3);
         assert_eq!(tree.root_hash.len(), 64);
@@ -39,7 +39,7 @@ mod tests {
     #[test]
     fn test_gen_proof_even() {
         let data = vec!["hello", "how", "are", "you"];
-        let tree = FullMerkleTree::from(data.clone());
+        let tree = FullMerkleTree::from(data.as_slice());
 
         // test proof for fist leaf
         let proof = vec![
@@ -59,7 +59,7 @@ mod tests {
     #[test]
     fn test_gen_proof_odd() {
         let data = vec!["how", "are", "you"];
-        let tree = FullMerkleTree::from(data.clone());
+        let tree = FullMerkleTree::from(data.as_slice());
 
         // test proof for fist leaf
         let proof = vec![
@@ -79,7 +79,7 @@ mod tests {
     #[test]
     fn test_verify_proof_odd() {
         let data = vec!["hello", "how", "are", "you"];
-        let tree = FullMerkleTree::from(data.clone());
+        let tree = FullMerkleTree::from(data.as_slice());
 
         // test for first
         let leaf_hash = get_hash_from_data(&data[0]);
@@ -92,7 +92,7 @@ mod tests {
     #[test]
     fn test_verify_proof_even() {
         let data = vec!["how", "are", "you"];
-        let tree = FullMerkleTree::from(data.clone());
+        let tree = FullMerkleTree::from(data.as_slice());
 
         // test for first
         let leaf_hash = get_hash_from_data(&data[0]);
@@ -105,7 +105,7 @@ mod tests {
     #[test]
     fn test_verify_proof_odd_fails() {
         let data = vec!["hello", "how", "are", "you"];
-        let tree = FullMerkleTree::from(data.clone());
+        let tree = FullMerkleTree::from(data.as_slice());
 
         let leaf_hash = get_hash_from_data("not right");
         assert!(!tree.verify_proof(leaf_hash, 0, tree.gen_proof(0).unwrap()));
@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn test_verify_proof_even_fails() {
         let data = vec!["how", "are", "you"];
-        let tree = FullMerkleTree::from(data.clone());
+        let tree = FullMerkleTree::from(data.as_slice());
 
         let leaf_hash = get_hash_from_data("not right");
         assert!(!tree.verify_proof(leaf_hash, 2, tree.gen_proof(2).unwrap()));
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn test_leaf_gets_added() {
         let data = vec!["how", "are", "you"];
-        let mut tree = FullMerkleTree::from(data.clone());
+        let mut tree = FullMerkleTree::from(data.as_slice());
         assert_eq!(tree.leaves.len(), 3);
 
         tree.add_leaf("hello");
@@ -132,7 +132,7 @@ mod tests {
     #[test]
     fn test_leaf_gets_deleted() {
         let data = vec!["hello", "how", "are", "you"];
-        let mut tree = FullMerkleTree::from(data.clone());
+        let mut tree = FullMerkleTree::from(data.as_slice());
         assert_eq!(tree.leaves.len(), 4);
 
         tree.delete_leaf(0);
@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn test_leaf_gets_updated() {
         let data = vec!["hello", "how", "are", "you"];
-        let mut tree = FullMerkleTree::from(data.clone());
+        let mut tree = FullMerkleTree::from(data.as_slice());
         assert_eq!(tree.leaves.len(), 4);
         tree.update_leaf(0, "hi");
 
@@ -152,7 +152,7 @@ mod tests {
     #[test]
     fn test_contains_hash() {
         let data = vec!["hello", "how", "are", "you"];
-        let mut tree = FullMerkleTree::from(data.clone());
+        let mut tree = FullMerkleTree::from(data.as_slice());
         assert_eq!(tree.leaves.len(), 4);
         tree.update_leaf(0, "hi");
 
