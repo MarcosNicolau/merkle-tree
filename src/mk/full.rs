@@ -126,6 +126,19 @@ impl FullMerkleTree {
         }
         leaf_hash == self.root_hash
     }
+
+    pub fn contains_hash(&self, hash: Hash) -> Option<(usize, Vec<Hash>)> {
+        let leaf = self
+            .leaves
+            .iter()
+            .enumerate()
+            .find(|(_, el)| el.borrow().value == hash);
+        if leaf.is_none() {
+            return None;
+        };
+        let leaf_idx = leaf.unwrap().0;
+        return Some((leaf_idx, self.gen_proof(leaf_idx).unwrap()));
+    }
 }
 
 impl<T: AsRef<[u8]>> From<Vec<T>> for FullMerkleTree {
