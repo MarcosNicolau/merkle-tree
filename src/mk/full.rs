@@ -15,7 +15,7 @@ impl FullMerkleTree {
         if data.is_empty() {
             return None;
         }
-        let leaves = FullMerkleTree::get_leaves_from(data);
+        let leaves = FullMerkleTree::create_leaves_from(data);
 
         let tree = FullMerkleTree::create_tree(leaves.clone());
         let root_hash = tree.borrow().value;
@@ -27,7 +27,7 @@ impl FullMerkleTree {
         })
     }
 
-    fn get_leaves_from<T: DataToHash>(data: &[T]) -> Vec<MKNode> {
+    fn create_leaves_from<T: DataToHash>(data: &[T]) -> Vec<MKNode> {
         data.iter()
             .map(|el| Node::new(get_hash_from_data(el), None, None, None))
             .collect()
@@ -61,8 +61,15 @@ impl FullMerkleTree {
         return node;
     }
 
-    pub fn get_leaves(&self) -> Vec<MKNode> {
-        self.leaves.to_owned()
+    pub fn get_leaf_by_idx(&self, idx: usize) -> Option<MKNode> {
+        self.leaves.get(idx).and_then(|el| Some(el.clone()))
+    }
+
+    pub fn get_leaf_by_hash(&self, hash: Hash) -> Option<MKNode> {
+        self.leaves
+            .iter()
+            .find(|el| el.borrow().value == hash)
+            .and_then(|el| Some(el.clone()))
     }
 
     pub fn add_leaf<T: DataToHash>(&mut self, data: T) {

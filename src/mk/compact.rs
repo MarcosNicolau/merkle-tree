@@ -27,9 +27,17 @@ impl CompactMerkleTree {
         if data.is_empty() {
             return None;
         }
-        let leaves: Vec<Node<[u8; 64]>> = Self::get_leaves_from(data);
+        let leaves: Vec<Node<[u8; 64]>> = Self::create_leaves_from(data);
         let root_hash = Self::calculate_root(leaves.clone());
         Some(Self { leaves, root_hash })
+    }
+
+    fn create_leaves_from<T: DataToHash>(data: &[T]) -> Vec<MKNode> {
+        data.iter()
+            .map(|el| Node {
+                value: get_hash_from_data(el),
+            })
+            .collect()
     }
 
     fn calculate_root(mut leaves: Vec<MKNode>) -> Hash {
@@ -38,6 +46,10 @@ impl CompactMerkleTree {
         }
 
         return leaves.get(0).unwrap().value;
+    }
+
+    pub fn get_root_hash(&self) -> Hash {
+        self.root_hash
     }
 
     fn get_parent_nodes(nodes: &Vec<MKNode>) -> Vec<MKNode> {
@@ -55,16 +67,15 @@ impl CompactMerkleTree {
             .collect()
     }
 
-    fn get_leaves_from<T: DataToHash>(data: &[T]) -> Vec<MKNode> {
-        data.iter()
-            .map(|el| Node {
-                value: get_hash_from_data(el),
-            })
-            .collect()
+    pub fn get_leaf_by_idx(&self, idx: usize) -> Option<MKNode> {
+        self.leaves.get(idx).and_then(|el| Some(el.clone()))
     }
 
-    pub fn get_leaves(&self) -> Vec<MKNode> {
-        self.leaves.to_owned()
+    pub fn get_leaf_by_hash(&self, hash: Hash) -> Option<MKNode> {
+        self.leaves
+            .iter()
+            .find(|el| el.value == hash)
+            .and_then(|el| Some(el.clone()))
     }
 
     pub fn add_leaf<T: DataToHash>(&mut self, data: T) {

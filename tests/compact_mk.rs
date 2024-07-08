@@ -159,4 +159,22 @@ mod tests {
         let res = tree.contains_hash(get_hash_from_data("are"));
         assert_eq!(res.unwrap(), (2, tree.gen_proof(2).unwrap()));
     }
+
+    #[test]
+    fn test_get_leaf_by_idx() {
+        let data = vec!["hello", "how", "are", "you"];
+        let tree = CompactMerkleTree::from(data.as_slice());
+
+        let res = tree.get_leaf_by_idx(2);
+        assert_eq!(res.unwrap().value, get_hash_from_data("are"));
+    }
+
+    #[test]
+    fn test_get_leaf_by_hash() {
+        let data = vec!["hello", "how", "are", "you"];
+        let tree = CompactMerkleTree::from(data.as_slice());
+        let hash = get_hash_from_data("are");
+        let res = tree.get_leaf_by_hash(hash);
+        assert_eq!(res.unwrap().value, hash);
+    }
 }
