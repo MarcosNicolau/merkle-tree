@@ -1,6 +1,6 @@
 use crate::tree::*;
-use crate::utils;
-use blake2::{Blake2b512, Digest};
+use crate::utils::crypto::*;
+use crate::utils::num;
 use std::rc::Rc;
 
 type Hash = [u8; 64];
@@ -11,12 +11,8 @@ pub struct MerkleTree {
     root_hash: Hash,
 }
 
-// creates an alias for the trait AsRef<[u8]>, so that we don't have to write every time
-pub trait Data: AsRef<[u8]> {}
-impl<T: AsRef<[u8]>> Data for T {}
-
 impl MerkleTree {
-    fn create<T: Data>(data: Vec<T>) -> Option<Self> {
+    fn create<T: DataToHash>(data: Vec<T>) -> Option<Self> {
         if data.is_empty() {
             return None;
         }
@@ -32,9 +28,9 @@ impl MerkleTree {
         })
     }
 
-    fn get_leaves_from<T: Data>(data: Vec<T>) -> Vec<MKNode> {
+    fn get_leaves_from<T: DataToHash>(data: Vec<T>) -> Vec<MKNode> {
         data.iter()
-            .map(|el| Node::new(MerkleTree::get_hash_from_data(el), None, None, None))
+            .map(|el| Node::new(get_hash_from_data(el), None, None, None))
             .collect()
     }
 
@@ -45,7 +41,7 @@ impl MerkleTree {
                 .map(|el| match el {
                     [a, b] => {
                         let node = Node::new(
-                            MerkleTree::get_combined_hash(a.borrow().value, b.borrow().value),
+                            get_combined_hash(a.borrow().value, b.borrow().value),
                             Some(vec![Rc::clone(a), Rc::clone(b)]),
                             None,
                             None,
@@ -56,7 +52,7 @@ impl MerkleTree {
                     // hash with itself
                     [a] => {
                         let node = Node::new(
-                            MerkleTree::get_combined_hash(a.borrow().value, a.borrow().value),
+                            get_combined_hash(a.borrow().value, a.borrow().value),
                             Some(vec![Rc::clone(a)]),
                             None,
                             None,
@@ -77,23 +73,23 @@ impl MerkleTree {
         self.leaves.to_owned()
     }
 
-    pub fn add_leaf<T: Data>(&mut self, data: T) {
-        let hash = MerkleTree::get_hash_from_data(data);
+    pub fn add_leaf<T: DataToHash>(&mut self, data: T) {
+        let hash = get_hash_from_data(data);
         let node = Node::new(hash, None, None, None);
         self.leaves.push(node);
         self.rebuild_tree();
     }
 
-    pub fn delete_leaf<T: Data>(&mut self, index: usize) {
+    pub fn delete_leaf<T: DataToHash>(&mut self, index: usize) {
         if let Some(_) = self.leaves.get(index) {
             self.leaves.remove(index);
             self.rebuild_tree();
         }
     }
 
-    pub fn update_left<T: Data>(&mut self, index: usize, data: T) {
+    pub fn update_left<T: DataToHash>(&mut self, index: usize, data: T) {
         if let Some(node) = self.leaves.get(index) {
-            node.borrow_mut().value = MerkleTree::get_hash_from_data(data);
+            node.borrow_mut().value = get_hash_from_data(data);
             self.rebuild_tree();
         }
     }
@@ -105,7 +101,7 @@ impl MerkleTree {
         self.root_hash = root_hash;
     }
 
-    pub fn gen_proof<T: Data>(&self, leaf_idx: usize) -> Result<Vec<Hash>, &str> {
+    pub fn gen_proof<T: DataToHash>(&self, leaf_idx: usize) -> Result<Vec<Hash>, &str> {
         let mut proof: Vec<Hash> = Vec::new();
         let mut current_node = match self.leaves.get(leaf_idx) {
             Some(node) => node.clone(),
@@ -129,24 +125,14 @@ impl MerkleTree {
 
     pub fn verify_proof(&self, mut leaf_hash: Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
         for hash in proof {
-            if utils::is_even(leaf_idx) {
-                leaf_hash = MerkleTree::get_combined_hash(leaf_hash, hash);
+            if num::is_even(leaf_idx) {
+                leaf_hash = get_combined_hash(leaf_hash, hash);
             } else {
-                leaf_hash = MerkleTree::get_combined_hash(hash, leaf_hash);
+                leaf_hash = get_combined_hash(hash, leaf_hash);
             }
             leaf_idx /= 2;
         }
         leaf_hash == self.root_hash
-    }
-
-    fn get_combined_hash(a: Hash, b: Hash) -> Hash {
-        let mut hasher = Blake2b512::new_with_prefix(a);
-        hasher.update(b);
-        hasher.finalize().into()
-    }
-
-    fn get_hash_from_data<T: Data>(el: T) -> Hash {
-        Blake2b512::new_with_prefix(el).finalize().into()
     }
 }
 
