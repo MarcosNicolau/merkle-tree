@@ -45,14 +45,14 @@ impl CompactMerkleTree {
             leaves = Self::get_parent_nodes(&leaves);
         }
 
-        return leaves.get(0).unwrap().value;
+        return leaves.first().unwrap().value;
     }
 
     pub fn get_root_hash(&self) -> Hash {
         self.root_hash
     }
 
-    fn get_parent_nodes(nodes: &Vec<MKNode>) -> Vec<MKNode> {
+    fn get_parent_nodes(nodes: &[MKNode]) -> Vec<MKNode> {
         nodes
             .chunks(2)
             .map(|leaf| match leaf {
@@ -68,14 +68,11 @@ impl CompactMerkleTree {
     }
 
     pub fn get_leaf_by_idx(&self, idx: usize) -> Option<MKNode> {
-        self.leaves.get(idx).and_then(|el| Some(el.clone()))
+        self.leaves.get(idx).cloned()
     }
 
     pub fn get_leaf_by_hash(&self, hash: Hash) -> Option<MKNode> {
-        self.leaves
-            .iter()
-            .find(|el| el.value == hash)
-            .and_then(|el| Some(el.clone()))
+        self.leaves.iter().find(|el| el.value == hash).cloned()
     }
 
     pub fn add_leaf<T: DataToHash>(&mut self, data: T) {
@@ -85,7 +82,7 @@ impl CompactMerkleTree {
     }
 
     pub fn delete_leaf(&mut self, index: usize) {
-        if let Some(_) = self.leaves.get(index) {
+        if self.leaves.get(index).is_some() {
             self.leaves.remove(index);
             self.rebuild_root();
         }
@@ -130,7 +127,7 @@ impl CompactMerkleTree {
             leaf_idx /= 2;
         }
 
-        return Ok(proof);
+        Ok(proof)
     }
 
     pub fn verify_proof(&self, mut leaf_hash: Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
@@ -151,10 +148,7 @@ impl CompactMerkleTree {
             .iter()
             .enumerate()
             .find(|(_, el)| el.value == hash);
-        if leaf.is_none() {
-            return None;
-        };
-        let leaf_idx = leaf.unwrap().0;
+        let leaf_idx = leaf?.0;
         return Some((leaf_idx, self.gen_proof(leaf_idx).unwrap()));
     }
 }

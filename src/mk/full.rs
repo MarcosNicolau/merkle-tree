@@ -46,7 +46,7 @@ impl FullMerkleTree {
                 .collect();
         }
 
-        return leaves.get(0).unwrap().to_owned();
+        return leaves.first().unwrap().to_owned();
     }
 
     fn create_node(a: &MKNode, b: &MKNode) -> MKNode {
@@ -58,18 +58,18 @@ impl FullMerkleTree {
         );
         Node::set_parent_and_siblings(&node, &[a, b]);
 
-        return node;
+        node
     }
 
     pub fn get_leaf_by_idx(&self, idx: usize) -> Option<MKNode> {
-        self.leaves.get(idx).and_then(|el| Some(el.clone()))
+        self.leaves.get(idx).cloned()
     }
 
     pub fn get_leaf_by_hash(&self, hash: Hash) -> Option<MKNode> {
         self.leaves
             .iter()
             .find(|el| el.borrow().value == hash)
-            .and_then(|el| Some(el.clone()))
+            .cloned()
     }
 
     pub fn add_leaf<T: DataToHash>(&mut self, data: T) {
@@ -80,7 +80,7 @@ impl FullMerkleTree {
     }
 
     pub fn delete_leaf(&mut self, index: usize) {
-        if let Some(_) = self.leaves.get(index) {
+        if self.leaves.get(index).is_some() {
             self.leaves.remove(index);
             self.rebuild_tree();
         }
@@ -119,7 +119,7 @@ impl FullMerkleTree {
             current_node = parent_node;
         }
 
-        return Ok(proof);
+        Ok(proof)
     }
 
     pub fn verify_proof(&self, mut leaf_hash: Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
@@ -140,10 +140,8 @@ impl FullMerkleTree {
             .iter()
             .enumerate()
             .find(|(_, el)| el.borrow().value == hash);
-        if leaf.is_none() {
-            return None;
-        };
-        let leaf_idx = leaf.unwrap().0;
+
+        let leaf_idx = leaf?.0;
         return Some((leaf_idx, self.gen_proof(leaf_idx).unwrap()));
     }
 }
