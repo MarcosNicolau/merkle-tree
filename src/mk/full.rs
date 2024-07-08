@@ -39,34 +39,27 @@ impl FullMerkleTree {
             leaves = leaves
                 .chunks(2)
                 .map(|el| match el {
-                    [a, b] => {
-                        let node = Node::new(
-                            get_combined_hash(a.borrow().value, b.borrow().value),
-                            Some(vec![Rc::clone(a), Rc::clone(b)]),
-                            None,
-                            None,
-                        );
-                        Node::set_parent_and_siblings(&node, &[a, b]);
-                        return node;
-                    }
+                    [a, b] => Self::create_node(a, b),
                     // hash with itself
-                    [a] => {
-                        let node = Node::new(
-                            get_combined_hash(a.borrow().value, a.borrow().value),
-                            Some(vec![Rc::clone(a)]),
-                            None,
-                            None,
-                        );
-                        // does not have siblings
-                        Node::set_parent(&node, a);
-                        return node;
-                    }
+                    [a] => Self::create_node(a, a),
                     _ => panic!("unexpected chunk size"),
                 })
                 .collect();
         }
 
         return leaves.get(0).unwrap().to_owned();
+    }
+
+    fn create_node(a: &MKNode, b: &MKNode) -> MKNode {
+        let node = Node::new(
+            get_combined_hash(a.borrow().value, b.borrow().value),
+            Some(vec![Rc::clone(a), Rc::clone(b)]),
+            None,
+            None,
+        );
+        Node::set_parent_and_siblings(&node, &[a, b]);
+
+        return node;
     }
 
     pub fn get_leaves(&self) -> Vec<MKNode> {
