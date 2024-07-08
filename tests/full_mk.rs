@@ -148,4 +148,15 @@ mod tests {
         let val = tree.leaves.get(0).unwrap().borrow().value;
         assert_eq!(val, get_hash_from_data("hi"))
     }
+
+    #[test]
+    fn test_contains_hash() {
+        let data = vec!["hello", "how", "are", "you"];
+        let mut tree = FullMerkleTree::from(data.clone());
+        assert_eq!(tree.leaves.len(), 4);
+        tree.update_leaf(0, "hi");
+
+        let res = tree.contains_hash(get_hash_from_data("are"));
+        assert_eq!(res.unwrap(), (2, tree.gen_proof(2).unwrap()));
+    }
 }
