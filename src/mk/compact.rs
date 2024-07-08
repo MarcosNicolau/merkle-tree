@@ -23,10 +23,13 @@ pub struct CompactMerkleTree {
 }
 
 impl CompactMerkleTree {
-    fn create<T: DataToHash>(data: &[T]) -> Self {
+    fn create<T: DataToHash>(data: &[T]) -> Option<Self> {
+        if data.is_empty() {
+            return None;
+        }
         let leaves: Vec<Node<[u8; 64]>> = Self::get_leaves_from(data);
         let root_hash = Self::calculate_root(leaves.clone());
-        Self { leaves, root_hash }
+        Some(Self { leaves, root_hash })
     }
 
     fn calculate_root(mut leaves: Vec<MKNode>) -> Hash {
@@ -70,14 +73,14 @@ impl CompactMerkleTree {
         self.rebuild_root();
     }
 
-    pub fn delete_leaf<T: DataToHash>(&mut self, index: usize) {
+    pub fn delete_leaf(&mut self, index: usize) {
         if let Some(_) = self.leaves.get(index) {
             self.leaves.remove(index);
             self.rebuild_root();
         }
     }
 
-    pub fn update_left<T: DataToHash>(&mut self, index: usize, data: T) {
+    pub fn update_leaf<T: DataToHash>(&mut self, index: usize, data: T) {
         if let Some(node) = self.leaves.get_mut(index) {
             node.value = get_hash_from_data(data);
             self.rebuild_root();
@@ -104,10 +107,11 @@ impl CompactMerkleTree {
             } else {
                 leaf_idx - 1
             };
-            let sibling = nodes.get(sibling_idx);
+            let mut sibling = nodes.get(sibling_idx);
 
+            // it needs to hash with itself
             if sibling.is_none() {
-                return Err("Sibling index is out of bounds");
+                sibling = nodes.get(leaf_idx);
             }
 
             proof.push(sibling.unwrap().value);
@@ -133,6 +137,154 @@ impl CompactMerkleTree {
 
 impl<T: DataToHash> From<&[T]> for CompactMerkleTree {
     fn from(value: &[T]) -> CompactMerkleTree {
-        CompactMerkleTree::create(value)
+        CompactMerkleTree::create(value).expect("Data can't be empty")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_even_merkle_tree() {
+        let data = vec!["hello", "how", "are", "you"];
+        let tree = CompactMerkleTree::create(data.as_slice()).unwrap();
+
+        assert_eq!(tree.leaves.len(), 4);
+        assert_eq!(tree.root_hash.len(), 64);
+
+        let expected_root_hash = get_combined_hash(
+            get_combined_hash(get_hash_from_data(&data[0]), get_hash_from_data(&data[1])),
+            get_combined_hash(get_hash_from_data(&data[2]), get_hash_from_data(&data[3])),
+        );
+        assert_eq!(tree.root_hash, expected_root_hash);
+    }
+
+    #[test]
+    fn test_create_odd_merkle_tree() {
+        let data = vec!["how", "are", "you"];
+        let tree = CompactMerkleTree::create(data.as_slice()).unwrap();
+
+        assert_eq!(tree.leaves.len(), 3);
+        assert_eq!(tree.root_hash.len(), 64);
+
+        let expected_root_hash = get_combined_hash(
+            get_combined_hash(get_hash_from_data(&data[0]), get_hash_from_data(&data[1])),
+            get_combined_hash(get_hash_from_data(&data[2]), get_hash_from_data(&data[2])),
+        );
+        assert_eq!(tree.root_hash, expected_root_hash);
+    }
+
+    #[test]
+    fn test_gen_proof_even() {
+        let data = vec!["hello", "how", "are", "you"];
+        let tree = CompactMerkleTree::create(data.as_slice()).unwrap();
+
+        // test proof for fist leaf
+        let proof = vec![
+            get_hash_from_data(&data[1]),
+            get_combined_hash(get_hash_from_data(&data[2]), get_hash_from_data(&data[3])),
+        ];
+        assert_eq!(proof, tree.gen_proof(0).unwrap());
+
+        // test proof for second leaf
+        let proof = vec![
+            get_hash_from_data(&data[0]),
+            get_combined_hash(get_hash_from_data(&data[2]), get_hash_from_data(&data[3])),
+        ];
+        assert_eq!(proof, tree.gen_proof(1).unwrap());
+    }
+
+    #[test]
+    fn test_gen_proof_odd() {
+        let data = vec!["how", "are", "you"];
+        let tree = CompactMerkleTree::create(data.as_slice()).unwrap();
+
+        // test proof for fist leaf
+        let proof = vec![
+            get_hash_from_data(&data[1]),
+            get_combined_hash(get_hash_from_data(&data[2]), get_hash_from_data(&data[2])),
+        ];
+        assert_eq!(proof, tree.gen_proof(0).unwrap());
+
+        // test proof for second leaf
+        let proof = vec![
+            get_hash_from_data(&data[0]),
+            get_combined_hash(get_hash_from_data(&data[2]), get_hash_from_data(&data[2])),
+        ];
+        assert_eq!(proof, tree.gen_proof(1).unwrap());
+    }
+
+    #[test]
+    fn test_verify_proof_odd() {
+        let data = vec!["hello", "how", "are", "you"];
+        let tree = CompactMerkleTree::create(data.as_slice()).unwrap();
+
+        // test for first
+        let leaf_hash = get_hash_from_data(&data[0]);
+        assert!(tree.verify_proof(leaf_hash, 0, tree.gen_proof(0).unwrap()));
+
+        let leaf_hash = get_hash_from_data(&data[2]);
+        assert!(tree.verify_proof(leaf_hash, 2, tree.gen_proof(2).unwrap()));
+    }
+
+    #[test]
+    fn test_verify_proof_even() {
+        let data = vec!["how", "are", "you"];
+        let tree = CompactMerkleTree::create(data.as_slice()).unwrap();
+
+        // test for first
+        let leaf_hash = get_hash_from_data(&data[0]);
+        assert!(tree.verify_proof(leaf_hash, 0, tree.gen_proof(0).unwrap()));
+
+        let leaf_hash = get_hash_from_data(&data[2]);
+        assert!(tree.verify_proof(leaf_hash, 2, tree.gen_proof(2).unwrap()));
+    }
+
+    #[test]
+    fn test_verify_proof_odd_fails() {
+        let data = vec!["hello", "how", "are", "you"];
+        let tree = CompactMerkleTree::create(data.as_slice()).unwrap();
+
+        let leaf_hash = get_hash_from_data("not right");
+        assert!(!tree.verify_proof(leaf_hash, 0, tree.gen_proof(0).unwrap()));
+    }
+
+    #[test]
+    fn test_verify_proof_even_fails() {
+        let data = vec!["how", "are", "you"];
+        let tree = CompactMerkleTree::create(data.as_slice()).unwrap();
+
+        let leaf_hash = get_hash_from_data("not right");
+        assert!(!tree.verify_proof(leaf_hash, 2, tree.gen_proof(2).unwrap()));
+    }
+
+    #[test]
+    fn test_leaf_gets_added() {
+        let data = vec!["how", "are", "you"];
+        let mut tree = CompactMerkleTree::create(data.as_slice()).unwrap();
+        assert_eq!(tree.leaves.len(), 3);
+
+        tree.add_leaf("hello");
+        assert_eq!(tree.leaves.len(), 4)
+    }
+    #[test]
+    fn test_leaf_gets_deleted() {
+        let data = vec!["hello", "how", "are", "you"];
+        let mut tree = CompactMerkleTree::create(data.as_slice()).unwrap();
+        assert_eq!(tree.leaves.len(), 4);
+
+        tree.delete_leaf(0);
+        assert_eq!(tree.leaves.len(), 3)
+    }
+    #[test]
+    fn test_leaf_gets_updated() {
+        let data = vec!["hello", "how", "are", "you"];
+        let mut tree = CompactMerkleTree::create(data.as_slice()).unwrap();
+        assert_eq!(tree.leaves.len(), 4);
+        tree.update_leaf(0, "hi");
+
+        let val = tree.leaves.get(0).unwrap().value;
+        assert_eq!(val, get_hash_from_data("hi"))
     }
 }
