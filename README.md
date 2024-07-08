@@ -1,4 +1,4 @@
-# Merkle ree Library
+# Merkle Tree Library
 
 This Rust library provides functionality for working with Merkle trees in memory. Merkle trees are cryptographic data structures that enable efficient verification of data integrity and consistency.
 
