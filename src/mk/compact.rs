@@ -1,4 +1,4 @@
-use crate::utils::crypto::*;
+use crate::utils::{crypto::*, num::is_even};
 
 pub struct Node<T> {
     value: T,
@@ -31,21 +31,25 @@ impl CompactMerkleTree {
 
     fn calculate_root(mut leaves: Vec<MKNode>) -> Hash {
         while leaves.len() > 1 {
-            leaves = leaves
-                .chunks(2)
-                .map(|leaf| match leaf {
-                    [a, b] => Node {
-                        value: get_combined_hash(a.value, b.value),
-                    },
-                    [a] => Node {
-                        value: get_combined_hash(a.value, a.value),
-                    },
-                    _ => panic!(),
-                })
-                .collect();
+            leaves = Self::get_parent_nodes(&leaves);
         }
 
         return leaves.get(0).unwrap().value;
+    }
+
+    fn get_parent_nodes(nodes: &Vec<MKNode>) -> Vec<MKNode> {
+        nodes
+            .chunks(2)
+            .map(|leaf| match leaf {
+                [a, b] => Node {
+                    value: get_combined_hash(a.value, b.value),
+                },
+                [a] => Node {
+                    value: get_combined_hash(a.value, a.value),
+                },
+                _ => panic!(),
+            })
+            .collect()
     }
 
     fn get_leaves_from<T: DataToHash>(data: &[T]) -> Vec<MKNode> {
@@ -83,6 +87,35 @@ impl CompactMerkleTree {
     fn rebuild_root(&mut self) {
         let root_hash = Self::calculate_root(self.leaves.clone());
         self.root_hash = root_hash;
+    }
+
+    pub fn gen_proof(&self, mut leaf_idx: usize) -> Result<Vec<Hash>, &str> {
+        let mut proof: Vec<Hash> = Vec::new();
+
+        if self.leaves.get(leaf_idx).is_none() {
+            return Err("No leaf exists with the given index");
+        }
+
+        let mut nodes = self.leaves.clone();
+
+        while nodes.len() > 1 {
+            let sibling_idx = if is_even(leaf_idx) {
+                leaf_idx + 1
+            } else {
+                leaf_idx - 1
+            };
+            let sibling = nodes.get(sibling_idx);
+
+            if sibling.is_none() {
+                return Err("Sibling index is out of bounds");
+            }
+
+            proof.push(sibling.unwrap().value);
+            nodes = Self::get_parent_nodes(&nodes);
+            leaf_idx /= 2;
+        }
+
+        return Ok(proof);
     }
 }
 
