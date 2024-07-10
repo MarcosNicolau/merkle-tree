@@ -34,7 +34,7 @@ impl FullMerkleTree {
     }
 
     fn create_tree(mut leaves: Vec<MKNode>) -> MKNode {
-        while leaves.len() != 1 {
+        while leaves.len() > 1 {
             leaves = leaves
                 .chunks(2)
                 .map(|el| match el {
@@ -46,6 +46,7 @@ impl FullMerkleTree {
                 .collect();
         }
 
+        // there has to be a first, otherwise the while would keep running
         return leaves.first().unwrap().to_owned();
     }
 
@@ -142,6 +143,7 @@ impl FullMerkleTree {
             .find(|(_, el)| el.borrow().value == hash);
 
         let leaf_idx = leaf?.0;
+        // if the leaf exists then the gen_proof also does
         return Some((leaf_idx, self.gen_proof(leaf_idx).unwrap()));
     }
 }

@@ -45,6 +45,7 @@ impl CompactMerkleTree {
             leaves = Self::get_parent_nodes(&leaves);
         }
 
+        // there has to be a first, otherwise the while would keep running
         return leaves.first().unwrap().value;
     }
 
@@ -149,6 +150,7 @@ impl CompactMerkleTree {
             .enumerate()
             .find(|(_, el)| el.value == hash);
         let leaf_idx = leaf?.0;
+        // if the leaf exists then it must have a proof
         return Some((leaf_idx, self.gen_proof(leaf_idx).unwrap()));
     }
 }
