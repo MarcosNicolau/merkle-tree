@@ -1,5 +1,7 @@
 use crate::utils::{crypto::*, num::is_even};
 
+use super::mk::MerkleTree;
+
 pub struct Node<T> {
     pub value: T,
 }
@@ -72,39 +74,41 @@ impl<H: Hasher> CompactMerkleTree<H> {
             .collect()
     }
 
-    pub fn get_leaf_by_idx(&self, idx: usize) -> Option<MKNode> {
+    fn rebuild_root(&mut self) {
+        self.root_hash = CompactMerkleTree::calculate_root(&self.leaves, &self.hasher);
+    }
+}
+
+impl<H: Hasher> MerkleTree<MKNode> for CompactMerkleTree<H> {
+    fn get_leaf_by_idx(&self, idx: usize) -> Option<MKNode> {
         self.leaves.get(idx).cloned()
     }
 
-    pub fn get_leaf_by_hash(&self, hash: Hash) -> Option<MKNode> {
-        self.leaves.iter().find(|el| el.value == hash).cloned()
+    fn get_leaf_by_hash(&self, hash: &Hash) -> Option<MKNode> {
+        self.leaves.iter().find(|el| el.value == *hash).cloned()
     }
 
-    pub fn add_leaf<T: HashableData>(&mut self, data: T) {
+    fn add_leaf<T: HashableData>(&mut self, data: T) {
         let hash = self.hasher.get_hash_from_data(data);
         self.leaves.push(Node { value: hash });
         self.rebuild_root();
     }
 
-    pub fn delete_leaf(&mut self, index: usize) {
+    fn delete_leaf(&mut self, index: usize) {
         if self.leaves.get(index).is_some() {
             self.leaves.remove(index);
             self.rebuild_root();
         }
     }
 
-    pub fn update_leaf<T: HashableData>(&mut self, index: usize, data: T) {
+    fn update_leaf<T: HashableData>(&mut self, index: usize, data: T) {
         if let Some(node) = self.leaves.get_mut(index) {
             node.value = self.hasher.get_hash_from_data(data);
             self.rebuild_root();
         }
     }
 
-    fn rebuild_root(&mut self) {
-        self.root_hash = CompactMerkleTree::calculate_root(&self.leaves, &self.hasher);
-    }
-
-    pub fn gen_proof(&self, mut leaf_idx: usize) -> Option<Vec<Hash>> {
+    fn gen_proof(&self, mut leaf_idx: usize) -> Option<Vec<Hash>> {
         let mut proof: Vec<Hash> = Vec::new();
 
         if self.leaves.get(leaf_idx).is_none() {
@@ -133,7 +137,7 @@ impl<H: Hasher> CompactMerkleTree<H> {
         Some(proof)
     }
 
-    pub fn verify_proof(&self, leaf_hash: &Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
+    fn verify_proof(&self, leaf_hash: &Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
         let mut leaf_hash = leaf_hash.clone();
         for hash in proof {
             if is_even(leaf_idx) {
@@ -146,7 +150,7 @@ impl<H: Hasher> CompactMerkleTree<H> {
         leaf_hash == self.root_hash
     }
 
-    pub fn contains_hash(&self, hash: &Hash) -> Option<(usize, Vec<Hash>)> {
+    fn contains_hash(&self, hash: &Hash) -> Option<(usize, Vec<Hash>)> {
         let leaf_index = self.leaves.iter().position(|el| el.value == *hash)?;
 
         let proof = self.gen_proof(leaf_index).unwrap();

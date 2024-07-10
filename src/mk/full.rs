@@ -3,6 +3,8 @@ use crate::utils::crypto::*;
 use crate::utils::num;
 use std::rc::Rc;
 
+use super::mk::MerkleTree;
+
 type MKNode = TreeNode<Hash>;
 pub struct FullMerkleTree<H: Hasher> {
     pub hasher: H,
@@ -64,46 +66,48 @@ impl<H: Hasher> FullMerkleTree<H> {
         node
     }
 
-    pub fn get_leaf_by_idx(&self, idx: usize) -> Option<MKNode> {
-        self.leaves.get(idx).cloned()
-    }
-
-    pub fn get_leaf_by_hash(&self, hash: Hash) -> Option<MKNode> {
-        self.leaves
-            .iter()
-            .find(|el| el.borrow().value == hash)
-            .cloned()
-    }
-
-    pub fn add_leaf<T: HashableData>(&mut self, data: T) {
-        let hash = self.hasher.get_hash_from_data(data);
-        let node = Node::new(hash, None, None, None);
-        self.leaves.push(node);
-        self.rebuild_tree();
-    }
-
-    pub fn delete_leaf(&mut self, index: usize) {
-        if self.leaves.get(index).is_some() {
-            self.leaves.remove(index);
-            self.rebuild_tree();
-        }
-    }
-
-    pub fn update_leaf<T: HashableData>(&mut self, index: usize, data: T) {
-        if let Some(node) = self.leaves.get(index) {
-            node.borrow_mut().value = self.hasher.get_hash_from_data(data);
-            self.rebuild_tree();
-        }
-    }
-
     fn rebuild_tree(&mut self) {
         let tree = FullMerkleTree::create_tree(self.leaves.clone(), &self.hasher);
         let root_hash = tree.borrow().value.clone();
         self.tree = tree;
         self.root_hash = root_hash;
     }
+}
 
-    pub fn gen_proof(&self, leaf_idx: usize) -> Option<Vec<Hash>> {
+impl<H: Hasher> MerkleTree<MKNode> for FullMerkleTree<H> {
+    fn get_leaf_by_idx(&self, idx: usize) -> Option<MKNode> {
+        self.leaves.get(idx).cloned()
+    }
+
+    fn get_leaf_by_hash(&self, hash: &Hash) -> Option<MKNode> {
+        self.leaves
+            .iter()
+            .find(|el| el.borrow().value == *hash)
+            .cloned()
+    }
+
+    fn add_leaf<T: HashableData>(&mut self, data: T) {
+        let hash = self.hasher.get_hash_from_data(data);
+        let node = Node::new(hash, None, None, None);
+        self.leaves.push(node);
+        self.rebuild_tree();
+    }
+
+    fn delete_leaf(&mut self, index: usize) {
+        if self.leaves.get(index).is_some() {
+            self.leaves.remove(index);
+            self.rebuild_tree();
+        }
+    }
+
+    fn update_leaf<T: HashableData>(&mut self, index: usize, data: T) {
+        if let Some(node) = self.leaves.get(index) {
+            node.borrow_mut().value = self.hasher.get_hash_from_data(data);
+            self.rebuild_tree();
+        }
+    }
+
+    fn gen_proof(&self, leaf_idx: usize) -> Option<Vec<Hash>> {
         let mut proof: Vec<Hash> = Vec::new();
         let mut current_node = match self.leaves.get(leaf_idx) {
             Some(node) => node.clone(),
@@ -125,7 +129,7 @@ impl<H: Hasher> FullMerkleTree<H> {
         Some(proof)
     }
 
-    pub fn verify_proof(&self, leaf_hash: &Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
+    fn verify_proof(&self, leaf_hash: &Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
         let mut leaf_hash = leaf_hash.clone();
         for hash in proof {
             if num::is_even(leaf_idx) {
@@ -138,7 +142,7 @@ impl<H: Hasher> FullMerkleTree<H> {
         leaf_hash == self.root_hash
     }
 
-    pub fn contains_hash(&self, hash: &Hash) -> Option<(usize, Vec<Hash>)> {
+    fn contains_hash(&self, hash: &Hash) -> Option<(usize, Vec<Hash>)> {
         let leaf = self
             .leaves
             .iter()

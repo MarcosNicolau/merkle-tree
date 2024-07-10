@@ -4,6 +4,8 @@ use merkle_tree::utils::crypto::*;
 #[cfg(test)]
 mod tests {
 
+    use merkle_tree::mk::mk::MerkleTree;
+
     use super::*;
 
     #[test]
@@ -15,13 +17,13 @@ mod tests {
         assert_eq!(tree.root_hash.len(), 32);
 
         let expected_root_hash = tree.hasher.get_combined_hash(
-            tree.hasher.get_combined_hash(
-                tree.hasher.get_hash_from_data(&data[0]),
-                tree.hasher.get_hash_from_data(&data[1]),
+            &tree.hasher.get_combined_hash(
+                &tree.hasher.get_hash_from_data(&data[0]),
+                &tree.hasher.get_hash_from_data(&data[1]),
             ),
-            tree.hasher.get_combined_hash(
-                tree.hasher.get_hash_from_data(&data[2]),
-                tree.hasher.get_hash_from_data(&data[3]),
+            &tree.hasher.get_combined_hash(
+                &tree.hasher.get_hash_from_data(&data[2]),
+                &tree.hasher.get_hash_from_data(&data[3]),
             ),
         );
         assert_eq!(tree.root_hash, expected_root_hash);
@@ -36,13 +38,13 @@ mod tests {
         assert_eq!(tree.root_hash.len(), 32);
 
         let expected_root_hash = tree.hasher.get_combined_hash(
-            tree.hasher.get_combined_hash(
-                tree.hasher.get_hash_from_data(&data[0]),
-                tree.hasher.get_hash_from_data(&data[1]),
+            &tree.hasher.get_combined_hash(
+                &tree.hasher.get_hash_from_data(&data[0]),
+                &tree.hasher.get_hash_from_data(&data[1]),
             ),
-            tree.hasher.get_combined_hash(
-                tree.hasher.get_hash_from_data(&data[2]),
-                tree.hasher.get_hash_from_data(&data[2]),
+            &tree.hasher.get_combined_hash(
+                &tree.hasher.get_hash_from_data(&data[2]),
+                &tree.hasher.get_hash_from_data(&data[2]),
             ),
         );
         assert_eq!(tree.root_hash, expected_root_hash);
@@ -57,8 +59,8 @@ mod tests {
         let proof = vec![
             tree.hasher.get_hash_from_data(&data[1]),
             tree.hasher.get_combined_hash(
-                tree.hasher.get_hash_from_data(&data[2]),
-                tree.hasher.get_hash_from_data(&data[3]),
+                &tree.hasher.get_hash_from_data(&data[2]),
+                &tree.hasher.get_hash_from_data(&data[3]),
             ),
         ];
         assert_eq!(proof, tree.gen_proof(0).unwrap());
@@ -67,8 +69,8 @@ mod tests {
         let proof = vec![
             tree.hasher.get_hash_from_data(&data[0]),
             tree.hasher.get_combined_hash(
-                tree.hasher.get_hash_from_data(&data[2]),
-                tree.hasher.get_hash_from_data(&data[3]),
+                &tree.hasher.get_hash_from_data(&data[2]),
+                &tree.hasher.get_hash_from_data(&data[3]),
             ),
         ];
         assert_eq!(proof, tree.gen_proof(1).unwrap());
@@ -83,8 +85,8 @@ mod tests {
         let proof = vec![
             tree.hasher.get_hash_from_data(&data[1]),
             tree.hasher.get_combined_hash(
-                tree.hasher.get_hash_from_data(&data[2]),
-                tree.hasher.get_hash_from_data(&data[2]),
+                &tree.hasher.get_hash_from_data(&data[2]),
+                &tree.hasher.get_hash_from_data(&data[2]),
             ),
         ];
         assert_eq!(proof, tree.gen_proof(0).unwrap());
@@ -93,8 +95,8 @@ mod tests {
         let proof = vec![
             tree.hasher.get_hash_from_data(&data[0]),
             tree.hasher.get_combined_hash(
-                tree.hasher.get_hash_from_data(&data[2]),
-                tree.hasher.get_hash_from_data(&data[2]),
+                &tree.hasher.get_hash_from_data(&data[2]),
+                &tree.hasher.get_hash_from_data(&data[2]),
             ),
         ];
         assert_eq!(proof, tree.gen_proof(1).unwrap());
@@ -107,10 +109,10 @@ mod tests {
 
         // test for first
         let leaf_hash = tree.hasher.get_hash_from_data(&data[0]);
-        assert!(tree.verify_proof(leaf_hash, 0, tree.gen_proof(0).unwrap()));
+        assert!(tree.verify_proof(&leaf_hash, 0, tree.gen_proof(0).unwrap()));
 
         let leaf_hash = tree.hasher.get_hash_from_data(&data[2]);
-        assert!(tree.verify_proof(leaf_hash, 2, tree.gen_proof(2).unwrap()));
+        assert!(tree.verify_proof(&leaf_hash, 2, tree.gen_proof(2).unwrap()));
     }
 
     #[test]
@@ -120,10 +122,10 @@ mod tests {
 
         // test for first
         let leaf_hash = tree.hasher.get_hash_from_data(&data[0]);
-        assert!(tree.verify_proof(leaf_hash, 0, tree.gen_proof(0).unwrap()));
+        assert!(tree.verify_proof(&leaf_hash, 0, tree.gen_proof(0).unwrap()));
 
         let leaf_hash = tree.hasher.get_hash_from_data(&data[2]);
-        assert!(tree.verify_proof(leaf_hash, 2, tree.gen_proof(2).unwrap()));
+        assert!(tree.verify_proof(&leaf_hash, 2, tree.gen_proof(2).unwrap()));
     }
 
     #[test]
@@ -132,7 +134,7 @@ mod tests {
         let tree = CompactMerkleTree::create(data.as_slice(), Sha256Hasher {}).unwrap();
 
         let leaf_hash = tree.hasher.get_hash_from_data("not right");
-        assert!(!tree.verify_proof(leaf_hash, 0, tree.gen_proof(0).unwrap()));
+        assert!(!tree.verify_proof(&leaf_hash, 0, tree.gen_proof(0).unwrap()));
     }
 
     #[test]
@@ -141,7 +143,7 @@ mod tests {
         let tree = CompactMerkleTree::create(data.as_slice(), Sha256Hasher {}).unwrap();
 
         let leaf_hash = tree.hasher.get_hash_from_data("not right");
-        assert!(!tree.verify_proof(leaf_hash, 2, tree.gen_proof(2).unwrap()));
+        assert!(!tree.verify_proof(&leaf_hash, 2, tree.gen_proof(2).unwrap()));
     }
 
     #[test]
@@ -169,7 +171,7 @@ mod tests {
         assert_eq!(tree.leaves.len(), 4);
         tree.update_leaf(0, "hi");
 
-        let val = tree.leaves.get(0).unwrap().value;
+        let val = tree.leaves.get(0).unwrap().value.clone();
         assert_eq!(val, tree.hasher.get_hash_from_data("hi"))
     }
 
@@ -180,7 +182,7 @@ mod tests {
         assert_eq!(tree.leaves.len(), 4);
         tree.update_leaf(0, "hi");
 
-        let res = tree.contains_hash(tree.hasher.get_hash_from_data("are"));
+        let res = tree.contains_hash(&tree.hasher.get_hash_from_data("are"));
         assert_eq!(res.unwrap(), (2, tree.gen_proof(2).unwrap()));
     }
 
@@ -198,7 +200,7 @@ mod tests {
         let data = vec!["hello", "how", "are", "you"];
         let tree = CompactMerkleTree::create(data.as_slice(), Sha256Hasher {}).unwrap();
         let hash = tree.hasher.get_hash_from_data("are");
-        let res = tree.get_leaf_by_hash(hash);
+        let res = tree.get_leaf_by_hash(&hash);
         assert_eq!(res.unwrap().value, hash);
     }
 }
