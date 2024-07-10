@@ -52,8 +52,8 @@ fn main() {
     let data = vec!["hello", "how", "are", "you"];
 
     // here you can choose between the compact or the full version (their api is the same)
-    let mk = FullMerkleTree::from(data.as_slice());
-    // let mk = CompactMerkleTree::from(data.as_slice());
+    let mk = FullMerkleTree::try_from(data.as_slice()).unwrap();
+    // let mk = CompactMerkleTree::try_from(data.as_slice()).unwrap();
 
     if verify_block_by_hash(get_hash_from_data("hello"), &mk) {
         print!("Hash is contained!")

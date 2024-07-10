@@ -153,8 +153,13 @@ impl CompactMerkleTree {
     }
 }
 
-impl<T: DataToHash> From<&[T]> for CompactMerkleTree {
-    fn from(value: &[T]) -> CompactMerkleTree {
-        CompactMerkleTree::create(value).expect("Data can't be empty")
+impl<T: AsRef<[u8]>> TryFrom<&[T]> for CompactMerkleTree {
+    type Error = &'static str;
+
+    fn try_from(value: &[T]) -> Result<Self, Self::Error> {
+        match CompactMerkleTree::create(value) {
+            Some(mk) => Ok(mk),
+            None => Err("data can't be empty"),
+        }
     }
 }

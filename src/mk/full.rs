@@ -146,8 +146,13 @@ impl FullMerkleTree {
     }
 }
 
-impl<T: AsRef<[u8]>> From<&[T]> for FullMerkleTree {
-    fn from(value: &[T]) -> Self {
-        FullMerkleTree::create(value).expect("data can't be empty")
+impl<T: AsRef<[u8]>> TryFrom<&[T]> for FullMerkleTree {
+    type Error = &'static str;
+
+    fn try_from(value: &[T]) -> Result<Self, Self::Error> {
+        match FullMerkleTree::create(value) {
+            Some(mk) => Ok(mk),
+            None => Err("data can't be empty"),
+        }
     }
 }
