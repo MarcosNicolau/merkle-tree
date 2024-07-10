@@ -103,11 +103,11 @@ impl<H: Hasher> FullMerkleTree<H> {
         self.root_hash = root_hash;
     }
 
-    pub fn gen_proof(&self, leaf_idx: usize) -> Result<Vec<Hash>, &str> {
+    pub fn gen_proof(&self, leaf_idx: usize) -> Option<Vec<Hash>> {
         let mut proof: Vec<Hash> = Vec::new();
         let mut current_node = match self.leaves.get(leaf_idx) {
             Some(node) => node.clone(),
-            None => return Err("No leaf exists with the given index"),
+            None => return None,
         };
 
         loop {
@@ -122,7 +122,7 @@ impl<H: Hasher> FullMerkleTree<H> {
             current_node = parent_node;
         }
 
-        Ok(proof)
+        Some(proof)
     }
 
     pub fn verify_proof(&self, leaf_hash: &Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {

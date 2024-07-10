@@ -104,11 +104,11 @@ impl<H: Hasher> CompactMerkleTree<H> {
         self.root_hash = CompactMerkleTree::calculate_root(&self.leaves, &self.hasher);
     }
 
-    pub fn gen_proof(&self, mut leaf_idx: usize) -> Result<Vec<Hash>, &str> {
+    pub fn gen_proof(&self, mut leaf_idx: usize) -> Option<Vec<Hash>> {
         let mut proof: Vec<Hash> = Vec::new();
 
         if self.leaves.get(leaf_idx).is_none() {
-            return Err("No leaf exists with the given index");
+            return None;
         }
 
         let mut nodes = self.leaves.clone();
@@ -130,7 +130,7 @@ impl<H: Hasher> CompactMerkleTree<H> {
             leaf_idx /= 2;
         }
 
-        Ok(proof)
+        Some(proof)
     }
 
     pub fn verify_proof(&self, leaf_hash: &Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
