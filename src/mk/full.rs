@@ -4,43 +4,45 @@ use crate::utils::num;
 use std::rc::Rc;
 
 type MKNode = TreeNode<Hash>;
-pub struct FullMerkleTree {
+pub struct FullMerkleTree<H: Hasher> {
+    pub hasher: H,
     pub tree: MKNode,
     pub leaves: Vec<MKNode>,
     pub root_hash: Hash,
 }
 
-impl FullMerkleTree {
-    pub fn create<T: DataToHash>(data: &[T]) -> Option<Self> {
+impl<H: Hasher> FullMerkleTree<H> {
+    pub fn create<T: HashableData>(data: &[T], hasher: H) -> Option<Self> {
         if data.is_empty() {
             return None;
         }
-        let leaves = FullMerkleTree::create_leaves_from(data);
+        let leaves = FullMerkleTree::create_leaves_from(data, &hasher);
 
-        let tree = FullMerkleTree::create_tree(leaves.clone());
+        let tree = FullMerkleTree::create_tree(leaves.clone(), &hasher);
         let root_hash = tree.borrow().value;
 
         Some(Self {
             tree,
             root_hash,
             leaves,
+            hasher,
         })
     }
 
-    fn create_leaves_from<T: DataToHash>(data: &[T]) -> Vec<MKNode> {
+    fn create_leaves_from<T: HashableData>(data: &[T], hasher: &H) -> Vec<MKNode> {
         data.iter()
-            .map(|el| Node::new(get_hash_from_data(el), None, None, None))
+            .map(|el| Node::new(hasher.get_hash_from_data(el), None, None, None))
             .collect()
     }
 
-    fn create_tree(mut leaves: Vec<MKNode>) -> MKNode {
+    fn create_tree(mut leaves: Vec<MKNode>, hasher: &H) -> MKNode {
         while leaves.len() > 1 {
             leaves = leaves
                 .chunks(2)
                 .map(|el| match el {
-                    [a, b] => Self::create_node(a, b),
+                    [a, b] => Self::create_node(a, b, hasher),
                     // hash with itself
-                    [a] => Self::create_node(a, &Node::<Hash>::clone(a)),
+                    [a] => Self::create_node(a, &Node::<Hash>::clone(a), hasher),
                     _ => panic!("unexpected chunk size"),
                 })
                 .collect();
@@ -50,9 +52,9 @@ impl FullMerkleTree {
         return leaves.first().unwrap().to_owned();
     }
 
-    fn create_node(a: &MKNode, b: &MKNode) -> MKNode {
+    fn create_node(a: &MKNode, b: &MKNode, hasher: &H) -> MKNode {
         let node = Node::new(
-            get_combined_hash(a.borrow().value, b.borrow().value),
+            hasher.get_combined_hash(a.borrow().value, b.borrow().value),
             Some(vec![Rc::clone(a), Rc::clone(b)]),
             None,
             None,
@@ -73,8 +75,8 @@ impl FullMerkleTree {
             .cloned()
     }
 
-    pub fn add_leaf<T: DataToHash>(&mut self, data: T) {
-        let hash = get_hash_from_data(data);
+    pub fn add_leaf<T: HashableData>(&mut self, data: T) {
+        let hash = self.hasher.get_hash_from_data(data);
         let node = Node::new(hash, None, None, None);
         self.leaves.push(node);
         self.rebuild_tree();
@@ -87,15 +89,15 @@ impl FullMerkleTree {
         }
     }
 
-    pub fn update_leaf<T: DataToHash>(&mut self, index: usize, data: T) {
+    pub fn update_leaf<T: HashableData>(&mut self, index: usize, data: T) {
         if let Some(node) = self.leaves.get(index) {
-            node.borrow_mut().value = get_hash_from_data(data);
+            node.borrow_mut().value = self.hasher.get_hash_from_data(data);
             self.rebuild_tree();
         }
     }
 
     fn rebuild_tree(&mut self) {
-        let tree = FullMerkleTree::create_tree(self.leaves.clone());
+        let tree = FullMerkleTree::create_tree(self.leaves.clone(), &self.hasher);
         let root_hash = tree.borrow().value;
         self.tree = tree;
         self.root_hash = root_hash;
@@ -126,9 +128,9 @@ impl FullMerkleTree {
     pub fn verify_proof(&self, mut leaf_hash: Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
         for hash in proof {
             if num::is_even(leaf_idx) {
-                leaf_hash = get_combined_hash(leaf_hash, hash);
+                leaf_hash = self.hasher.get_combined_hash(leaf_hash, hash);
             } else {
-                leaf_hash = get_combined_hash(hash, leaf_hash);
+                leaf_hash = self.hasher.get_combined_hash(hash, leaf_hash);
             }
             leaf_idx /= 2;
         }
@@ -145,16 +147,5 @@ impl FullMerkleTree {
         let leaf_idx = leaf?.0;
         // if the leaf exists then the gen_proof also does
         return Some((leaf_idx, self.gen_proof(leaf_idx).unwrap()));
-    }
-}
-
-impl<T: AsRef<[u8]>> TryFrom<&[T]> for FullMerkleTree {
-    type Error = &'static str;
-
-    fn try_from(value: &[T]) -> Result<Self, Self::Error> {
-        match FullMerkleTree::create(value) {
-            Some(mk) => Ok(mk),
-            None => Err("data can't be empty"),
-        }
     }
 }
