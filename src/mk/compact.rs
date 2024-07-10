@@ -62,18 +62,14 @@ impl<H: Hasher> CompactMerkleTree<H> {
             .chunks(2)
             .map(|chunk| match chunk {
                 [a, b] => Node {
-                    value: hasher.get_combined_hash(a.value.clone(), b.value.clone()),
+                    value: hasher.get_combined_hash(&a.value, &b.value),
                 },
                 [a] => Node {
-                    value: hasher.get_combined_hash(a.value.clone(), a.value.clone()),
+                    value: hasher.get_combined_hash(&a.value, &a.value),
                 },
                 _ => panic!("Unexpected chunk size in get_parent_nodes"),
             })
             .collect()
-    }
-
-    pub fn get_root_hash(&self) -> Hash {
-        self.root_hash.clone()
     }
 
     pub fn get_leaf_by_idx(&self, idx: usize) -> Option<MKNode> {
@@ -137,20 +133,21 @@ impl<H: Hasher> CompactMerkleTree<H> {
         Ok(proof)
     }
 
-    pub fn verify_proof(&self, mut leaf_hash: Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
+    pub fn verify_proof(&self, leaf_hash: &Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
+        let mut leaf_hash = leaf_hash.clone();
         for hash in proof {
             if is_even(leaf_idx) {
-                leaf_hash = self.hasher.get_combined_hash(leaf_hash, hash);
+                leaf_hash = self.hasher.get_combined_hash(&leaf_hash, &hash);
             } else {
-                leaf_hash = self.hasher.get_combined_hash(hash, leaf_hash);
+                leaf_hash = self.hasher.get_combined_hash(&hash, &leaf_hash);
             }
             leaf_idx /= 2;
         }
         leaf_hash == self.root_hash
     }
 
-    pub fn contains_hash(&self, hash: Hash) -> Option<(usize, Vec<Hash>)> {
-        let leaf_index = self.leaves.iter().position(|el| el.value == hash)?;
+    pub fn contains_hash(&self, hash: &Hash) -> Option<(usize, Vec<Hash>)> {
+        let leaf_index = self.leaves.iter().position(|el| el.value == *hash)?;
 
         let proof = self.gen_proof(leaf_index).unwrap();
         Some((leaf_index, proof))

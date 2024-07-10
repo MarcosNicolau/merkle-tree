@@ -19,12 +19,12 @@ impl<H: Hasher> FullMerkleTree<H> {
         let leaves = FullMerkleTree::create_leaves_from(data, &hasher);
 
         let tree = FullMerkleTree::create_tree(leaves.clone(), &hasher);
-        let root_hash = tree.borrow().value;
+        let root_hash = tree.borrow().value.clone();
 
         Some(Self {
             tree,
-            root_hash,
             leaves,
+            root_hash,
             hasher,
         })
     }
@@ -54,7 +54,7 @@ impl<H: Hasher> FullMerkleTree<H> {
 
     fn create_node(a: &MKNode, b: &MKNode, hasher: &H) -> MKNode {
         let node = Node::new(
-            hasher.get_combined_hash(a.borrow().value, b.borrow().value),
+            hasher.get_combined_hash(&a.borrow().value, &b.borrow().value),
             Some(vec![Rc::clone(a), Rc::clone(b)]),
             None,
             None,
@@ -98,7 +98,7 @@ impl<H: Hasher> FullMerkleTree<H> {
 
     fn rebuild_tree(&mut self) {
         let tree = FullMerkleTree::create_tree(self.leaves.clone(), &self.hasher);
-        let root_hash = tree.borrow().value;
+        let root_hash = tree.borrow().value.clone();
         self.tree = tree;
         self.root_hash = root_hash;
     }
@@ -116,7 +116,7 @@ impl<H: Hasher> FullMerkleTree<H> {
             if sibling.is_none() {
                 break;
             }
-            proof.push(sibling.unwrap().borrow().value);
+            proof.push(sibling.unwrap().borrow().value.clone());
             // if it has a sibling, then it must have a parent
             let parent_node = current_node.borrow().get_parent().unwrap();
             current_node = parent_node;
@@ -125,24 +125,25 @@ impl<H: Hasher> FullMerkleTree<H> {
         Ok(proof)
     }
 
-    pub fn verify_proof(&self, mut leaf_hash: Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
+    pub fn verify_proof(&self, leaf_hash: &Hash, mut leaf_idx: usize, proof: Vec<Hash>) -> bool {
+        let mut leaf_hash = leaf_hash.clone();
         for hash in proof {
             if num::is_even(leaf_idx) {
-                leaf_hash = self.hasher.get_combined_hash(leaf_hash, hash);
+                leaf_hash = self.hasher.get_combined_hash(&leaf_hash, &hash);
             } else {
-                leaf_hash = self.hasher.get_combined_hash(hash, leaf_hash);
+                leaf_hash = self.hasher.get_combined_hash(&hash, &leaf_hash);
             }
             leaf_idx /= 2;
         }
         leaf_hash == self.root_hash
     }
 
-    pub fn contains_hash(&self, hash: Hash) -> Option<(usize, Vec<Hash>)> {
+    pub fn contains_hash(&self, hash: &Hash) -> Option<(usize, Vec<Hash>)> {
         let leaf = self
             .leaves
             .iter()
             .enumerate()
-            .find(|(_, el)| el.borrow().value == hash);
+            .find(|(_, el)| el.borrow().value == *hash);
 
         let leaf_idx = leaf?.0;
         // if the leaf exists then the gen_proof also does

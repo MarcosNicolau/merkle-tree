@@ -31,10 +31,10 @@ impl<T> Node<T> {
         }))
     }
 
-    pub fn clone<A: Copy>(a: &TreeNode<A>) -> TreeNode<A> {
+    pub fn clone<A: Clone>(a: &TreeNode<A>) -> TreeNode<A> {
         let a = a.borrow();
         Node::new(
-            a.value,
+            a.value.clone(),
             a.children.clone(),
             a.siblings.clone(),
             a.parent.clone(),
